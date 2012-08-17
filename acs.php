@@ -9,7 +9,8 @@ ob_start('ns1_filter'); // beware: cwmp xsd is added as "ns1" by php soap, so we
 ini_set("soap.wsdl_cache_enabled",0); 
 ini_set("session.auto_start",0);
 
-include('/etc/sams/acs.php'); // Site specific config ...
+// Configuration:
+include('/etc/sams/acs.php');
 
 // SOAP Class:
 class ACS {
@@ -106,8 +107,8 @@ class ACS {
 			$this->CheckDataChange($xVpPrefix.'1.Enable',                                    'string','Enabled');
 			$this->CheckDataChange($xVpPrefix.'1.RTP.DSCPMark',                              'unsignedInt',46);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.DSCPMark',                              'unsignedInt',46);
-			$this->CheckDataChange($xVpPrefix.'1.SIP.OutboundProxy',                         'string','10.0.0.1');
-			$this->CheckDataChange($xVpPrefix.'1.SIP.ProxyServer',                           'string','sip.skymesh.net.au');
+			$this->CheckDataChange($xVpPrefix.'1.SIP.OutboundProxy',                         'string',$GLOBALS['ACS_SIP_SBC']);
+			$this->CheckDataChange($xVpPrefix.'1.SIP.ProxyServer',                           'string',$GLOBALS['ACS_SIP_REG']);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.RegisterExpires',                       'unsignedInt',3600);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.RegistrationPeriod',                    'unsignedInt',3240);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.UserAgentDomain',                       'string','');
@@ -357,12 +358,12 @@ class ACS {
 				$this->RetryCount = array_shift($Arguments);
 				$this->RawParameterList = array_shift($Arguments);
 				$this->DEBUG($Method,sprintf("Manufacturer = %s\n",$this->DeviceID->Manufacturer));
-    		$this->DEBUG($Method,sprintf("OUI          = %s\n",$this->DeviceID->OUI));
-    		$this->DEBUG($Method,sprintf("ProductClass = %s\n",$this->DeviceID->ProductClass));
-    		$this->DEBUG($Method,sprintf("SerialNumber = %s\n",$this->DeviceID->SerialNumber));
-    		$this->DEBUG($Method,sprintf("MaxEnvelopes = %s\n",$this->MaxEnvelopes));
-    		$this->DEBUG($Method,sprintf("CurrentTime  = %s\n",$this->CurrentTime));
-    		$this->DEBUG($Method,sprintf("RetryCount   = %s\n",$this->RetryCount));
+				$this->DEBUG($Method,sprintf("OUI          = %s\n",$this->DeviceID->OUI));
+				$this->DEBUG($Method,sprintf("ProductClass = %s\n",$this->DeviceID->ProductClass));
+				$this->DEBUG($Method,sprintf("SerialNumber = %s\n",$this->DeviceID->SerialNumber));
+				$this->DEBUG($Method,sprintf("MaxEnvelopes = %s\n",$this->MaxEnvelopes));
+				$this->DEBUG($Method,sprintf("CurrentTime  = %s\n",$this->CurrentTime));
+				$this->DEBUG($Method,sprintf("RetryCount   = %s\n",$this->RetryCount));
 				foreach ($this->RawEvents as $idx => $E) $this->Events[$idx]=(array)$E;
 				foreach ($this->Events as $idx => $E)
 				$this->DEBUG($Method,sprintf("Event:[%02x] %s %s\n",$idx,$E["EventCode"],$E["CommandKey"]));
@@ -429,7 +430,7 @@ function DBH() {
 	// cannot serialize PDO objects in the session -- do not move to ACS class
 	try {
 		// (re)connect DB
-		$dbh = new PDO( $ACS_DSN, $ACS_DBUSER, $ACS_DBPASS, array(PDO::ATTR_PERSISTENT=>true));
+		$dbh = new PDO( $GLOBALS['ACS_DSN'], $GLOBALS['ACS_DBUSER'], $GLOBALS['ACS_DBPASS'], array(PDO::ATTR_PERSISTENT=>true));
 		$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 		return $dbh;
 	} catch (Exception $e) {
@@ -442,7 +443,7 @@ function MC() {
 	try {
 		// re(connect) Memcache!
 		$mc = new Memcache;
-		$mc->addServer( $ACS_MCHOST, 11211);
+		$mc->addServer( $GLOBALS['ACS_MCHOST'], 11211);
 		return $mc;
 	} catch (Exception $e) {
 		die($e->getMessage());

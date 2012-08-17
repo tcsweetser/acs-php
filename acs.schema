@@ -1,0 +1,21 @@
+Example Schema:
+
+   Column    |         Type          | Modifiers | Description
+-------------+-----------------------+-----------+-------------
+ samsid      | bigint                |           |
+ avc_id      | character varying(16) |           |
+ cvc_id      | character varying(16) |           |
+ port_id     | character varying(16) |           |
+ tc1_profile | character varying     |           |
+ Status      | character varying     |           |
+ number      | character varying(20) |           |
+ password    | character varying     |           |
+ status      | character varying     |           |
+ linked      | character varying     |           |
+ ipaddr      | inet                  |           |
+
+Currently, I use avc_id to get number and password for the SIP auth.
+
+Terry
+17AUG2012
+

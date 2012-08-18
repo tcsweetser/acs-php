@@ -12,25 +12,30 @@ ini_set("session.auto_start",0);
 // Configuration:
 include('/etc/sams/acs.php');
 
-// SOAP Class:
+// this class must be defined before we start a session or SOAP Server:
 class ACS {
-	public $SAMS;
-	public $ID;
-	public $SessionID;
-	public $Username;
-	public $Password;
-	public $CWMP;
-	public $xsd;
-	public $DeviceID;
-	public $RawEvents;
-	public $MaxEnvelopes;
-	public $CurrentTime;
-	public $RetryCount;
-	public $RawParameterList;
-	public $Data;
-	public $Events;
-	public $Params;
-	public $Queued;
+	public $SAMS;               // SkyMesh Application Management System (source of provisioning data)
+	public $ID;                 // ID from cwmp Soap Header
+	public $SessionID;          // PHPSESSID aka 'ID' in the http header cookie
+	public $Username;           // http username
+	public $Password;           // http password
+	public $CWMP;               // URN for cwmp 1.0
+	public $xsd;                // xsd for XMLSchema
+	public $DeviceID;           // Object with CPE data (SerialNumber etc)
+	public $RawEvents;          // (raw) Object of events from last Inform
+	public $MaxEnvelopes;       // ignored ...
+	public $CurrentTime;        // Timestamp from last Inform
+	public $RetryCount;         // retry counter from last Inform (>0 = errors?)
+	public $RawParameterList;   // (raw) Object of parameters from Inform
+	public $Methods;            // CPE Methods linear array of strings
+	public $Data;               // Object data as assoc array
+	public $Events;             // Events since last Inform linear array
+	public $Params;             // CPE parameters, ReadOnly or Writable
+	public $Queued;             // Reqs to sent to CPE
+	public $VarTypes;           // The (get)type of each CPE parameter
+	public $Attributes;         // FIXME: captured attributes per parameter
+	public $Calls;              // counter of '__wakeup' calls
+	public $BulkReq;            // certain Methods support up to 256 reqs
 
 	private function DEBUG($pre,$str)  { syslog(LOG_DEBUG,sprintf("[%d] %s::%s",getmypid(),$pre,$str)); }
 	private function logger($pre,$str) { syslog(LOG_INFO, sprintf("[%d] %s::%s",getmypid(),$pre,$str)); }
@@ -180,6 +185,7 @@ class ACS {
 	public function __wakeup() {
 		// see: http://au.php.net/manual/en/language.oop5.magic.php#object.wakeup
 		$this->DEBUG('WAKEUP','SessionID = '.session_id());
+		$this->Calls++;
 		$this->FetchSAMS(); // updates?
 	}
 
@@ -188,25 +194,31 @@ class ACS {
 		$this->CWMP = 'urn:dslforum-org:cwmp-1-0';
 		$this->xsd = 'http://www.w3.org/2001/XMLSchema';
 		$this->SessionID = session_id();
+		$this->Methods = array();
 		$this->Events = array();
 		$this->Queued = array();
 		$this->Username = $_SESSION['PHP_AUTH_USER'];
 		$this->Password = $_SESSION['PHP_AUTH_PW'];
+		$this->Calls = 0;
 	}
 
 	public function __sleep() {
 		// see: http://au.php.net/manual/en/language.oop5.magic.php#object.sleep
 		$this->DEBUG('SLEEP','SessionID = '.session_id());
 		return array(
-			'SAMS',
+			'SAMS', 'Calls',
 			'ID', 'SessionID', 'Username', 'Password',
 			'CWMP', 'xsd', 'DeviceID', 'RawEvents', 'MaxEnvelopes', 'CurrentTime', 'RetryCount', 'RawParameterList',
-			'Data', 'Events', 'Params', 'Queued'
+			'Data', 'Events', 'Params', 'Queued', 'VarTypes', 'Attributes', 'Methods'
 		);
 	}
 
 	public function __destruct() {
 		$this->DEBUG('DESTRUCT','SessionID = '.session_id());
+		$this->DEBUG('COUNTERS',sprintf('%d PAREMETER NAMES',count($this->Params)));
+		$this->DEBUG('COUNTERS',sprintf('%d PAREMETER VALUES',count($this->Data)));
+		$this->DEBUG('COUNTERS',sprintf('%d PAREMETER ATTRIBUTES',count($this->Attributes)));
+		$this->DEBUG('COUNTERS',sprintf('%d WAKEUP CALLS',$this->Calls));
 	}
 
 	// yes, I know, but it is easier than using an XML class ...
@@ -215,6 +227,13 @@ class ACS {
 		if (is_array($_array)) {
 			$TYPE = $_array['TYPE'];
 			switch ($TYPE) {
+				case 'VOID':
+					if (is_array($_array['Request']))
+						if (count($_array['Request'])>0)
+							$this->ERROR('XML','PARAMS NOT PASSED TO CPE, VOID METHOD');
+					if (!is_null($_array['ParameterKey']))
+						$XML.='<ParameterKey>'.$_array['ParameterKey'].'</ParameterKey>';
+				break;
 				case 'FLAT':
 					foreach($_array['Request'] as $A => $V) $XML.='<'.$A.'>'.$V.'</'.$A.'>';
 					if (!is_null($_array['ParameterKey']))
@@ -264,8 +283,10 @@ class ACS {
 		$this->DEBUG('SendJobs',sprintf("%d JOBS IN QUEUE",count($this->Queued)));
 		//
 		// check for the empty queue and now we can safely send changes:
+/*
 		if (count($this->Queued)==0) $this->SkyMesh(); // SkyMesh does our defaults
 		if (count($this->Queued)==0) $this->NBN(); // NBN sets up the ATA
+*/
 		//
 		// XXX: pp 38-39, 3.7.2.4 Session Termination
 		if (count($this->Queued)==0) {
@@ -290,18 +311,20 @@ class ACS {
 	public function __call($Method, $Arguments) {
 		$this->DEBUG('METHOD:'.$Method,'SessionID = '.session_id());
 
-		if (is_object($this->DeviceID)) {
-			$this->logger($Method,sprintf("Manufacturer = %s\n",$this->DeviceID->Manufacturer));
-			$this->logger($Method,sprintf("OUI          = %s\n",$this->DeviceID->OUI));
-			$this->logger($Method,sprintf("ProductClass = %s\n",$this->DeviceID->ProductClass));
-			$this->logger($Method,sprintf("SerialNumber = %s\n",$this->DeviceID->SerialNumber));
-		}
+		// DEBUG:
+		//	if (is_object($this->DeviceID)) {
+		//		$this->logger($Method,sprintf("Manufacturer = %s\n",$this->DeviceID->Manufacturer));
+		//		$this->logger($Method,sprintf("OUI          = %s\n",$this->DeviceID->OUI));
+		//		$this->logger($Method,sprintf("ProductClass = %s\n",$this->DeviceID->ProductClass));
+		//		$this->logger($Method,sprintf("SerialNumber = %s\n",$this->DeviceID->SerialNumber));
+		//	}
 
 		$this->FetchSAMS(); // updates?
 
 		switch ($Method) {
 
 			case "Fault":
+				// FIXME: Need better fault handling!
 				$this->DUMPER("FAULT DATA",array(
 					$Method,$Arguments
 				));
@@ -309,10 +332,21 @@ class ACS {
 			break;
 
 			case "Finish":
+				// Finish is not a TR-069 defined method, the CPE has asked for pending requests ...
+				$this->SendJobs();
+			break;
+
+			case "GetRPCMethodsResponse":
+				$response = $Arguments[0];
+				foreach ($response as $idx => $R) {
+					$this->Methods[$idx]=$R;
+					$this->DEBUG($Method,sprintf("[%02d] %s",$idx,$R));
+				}
 				$this->SendJobs();
 			break;
 
 			case "GetParameterNamesResponse":
+				// we are statelessly walking the Object tree on the CPE ...
 				$response = $Arguments[0];
 				foreach ($response as $R) {
 					$this->DEBUG($Method,sprintf("%s = %s",$R->Name,($R->Writable==1)?'Writable':'ReadOnly'));
@@ -321,8 +355,10 @@ class ACS {
 							$this->Enqueue("GetParameterNames",'FLAT',array('ParameterPath'=>$R->Name,'NextLevel'=>"1"),NULL);
 						break;
 						default:
+							// FIXME: queue a bulk req for Values and Attributes
 							$this->Enqueue("GetParameterValues",'ARRAY',array('ParameterNames','string',array($R->Name)),NULL);
-							$this->Params[$R->Name] = $R->Writable;
+							$this->Enqueue("GetParameterAttributes",'ARRAY',array('ParameterNames','string',array($R->Name)),NULL);
+							$this->Params[$R->Name] = ($R->Writable=="1")?"Writable":"ReadOnly";
 					}
 				}
 				$this->SendJobs();
@@ -331,21 +367,45 @@ class ACS {
 			case "GetParameterValuesResponse":
 				$response = $Arguments[0];
 				foreach ($response as $R) {
-					$this->DEBUG('GetParameterValues',sprintf("%s = %s",$R->Name,$R->Value));
+					$this->DEBUG('GetParameterValues',sprintf("%s = (%s) %s",$R->Name,gettype($R->Value),$R->Value));
 					$this->Data[$R->Name] = $R->Value;
+					$this->VarTypes[$R->Name] = gettype($R->Value);
+				}
+				$this->SendJobs();
+			break;
+
+			case "GetParameterAttributesResponse":
+				$response = $Arguments[0];
+				foreach ($response as $R) {
+					$this->DEBUG($Method,sprintf("%s",$R->Name));
+					$this->Attributes[$R->Name] = (object)array(
+						'Notification' =>
+							($R->Notification > 1)?"Active":(($R->Notification > 0)?"Passive":"Off"),
+						'AccessList'   => (count($R->AccessList)==0)?array('ACS'):$R->AccessList
+							// pp 56: "Subscriber" means the CPE has a customer GUI able to change this value
+							// NBN: ATA can report "ACSNotAllowed": Attribute NOT changes allowed
+					);
 				}
 				$this->SendJobs();
 			break;
 
 			case "SetParameterValuesResponse":
+				// FIXME: fault processing, rejections
+				$this->SendJobs();
+			break;
+
+			case "SetParameterAttributesResponse":
+				// FIXME: fault processing, rejections
 				$this->SendJobs();
 			break;
 
 			case "AddObjectResponse":
+				// FIXME: fault processing, rejections
 				$this->SendJobs();
 			break;
 
 			case "DeleteObjectResponse":
+				// FIXME: fault processing, rejections
 				$this->SendJobs();
 			break;
 
@@ -370,7 +430,9 @@ class ACS {
 				foreach ($this->RawParameterList as $P) $this->Data[$P->Name]=$P->Value;
 				foreach ($this->Data as $N => $V)
 				$this->DEBUG($Method,sprintf("%s = %s\n",$N,$V));
-				// schedule update of params:
+				// check up on CPE Methods"
+				$this->Enqueue("GetRPCMethods",'VOID',NULL,NULL);
+				// kick off a cycle of reqs to walk the CPE Object tree:
 				$this->Enqueue("GetParameterNames",'FLAT',array('ParameterPath'=>'InternetGatewayDevice.','NextLevel'=>"1"),NULL);
 				// the reply:
 				// FIXME: does not work: return new SoapVar(1,XSD_INT,'unsignedInt',NULL,'MaxEnvelopes');
@@ -378,7 +440,7 @@ class ACS {
 			break;
 
 			case "ID":
-				// Add Session ID to SOAP HEADER:
+				// TODO: Add Session ID to SOAP HEADER?
 				$this->ID = $Arguments[0];
 				// FIXME: likely not needed: $this->server->addSoapHeader( new SoapHeader($this->CWMP, 'ID', $this->ID, TRUE) );
 				return NULL;
@@ -415,13 +477,20 @@ foreach(getallheaders() as $h => $v) {
 // debug: syslog(LOG_INFO, sprintf("[%d] **HEADER** %s: %s",getmypid(),"SESSION ID (COOKIE)",$_COOKIE['ID']) );
 
 if ( count($_SESSION)>0 ) {
+	// if we have a session with data, CPE is "logged in"
 	syslog(LOG_INFO, sprintf("[%d] AUTH::%s (%s)",getmypid(),"SESSION ACTIVE",session_id()) );
 } elseif (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
+	// if we have a username and password, CPE is "logging in"
 	$_SESSION['PHP_AUTH_USER'] = $_SERVER['PHP_AUTH_USER'];
 	$_SESSION['PHP_AUTH_PW']   = $_SERVER['PHP_AUTH_PW'];
+	// FIXME: more secure to use Digest 
+	// $_SESSION['PHP_AUTH_DIGEST'] = $_SERVER['PHP_AUTH_DIGEST'];
+	// TODO: check the source of the request?
+	// $_SESSION['REMOTE_ADDR'] = $_SERVER['REMOTE_ADDR'];
 } else {
 	// no auth, no access ...
 	header('HTTP/1.1 401 Unauthorized');
+	// FIXME: more secure to use Digest 
 	header('WWW-Authenticate: Basic realm="ACS"');
 	die;
 }

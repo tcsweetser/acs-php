@@ -337,10 +337,8 @@ class ACS {
 		$this->DEBUG('SendJobs',sprintf("%d JOBS IN QUEUE",count($this->Queued)));
 		// Queue up all bulk reqs:
 		$this->SendAllBulkRequests();
-/*
 		if (count($this->Queued)==0) $this->SkyMesh(); // 'standard' settings
 		if (count($this->Queued)==0) $this->NBN(); // sets up and maintains the NBN ATA
-*/
 		//
 		// XXX: pp 38-39, 3.7.2.4 Session Termination
 		if (count($this->Queued)==0) {
@@ -420,7 +418,6 @@ class ACS {
 
 			case "GetParameterValuesResponse":
 				$response = $Arguments[0];
-				$this->DUMPER($Method,$Arguments);
 				foreach ($response as $R) {
 					$this->DEBUG('GetParameterValues',sprintf("%s = (%s) %s",$R->Name,gettype($R->Value),$R->Value));
 					$this->Data[$R->Name] = $R->Value;
@@ -431,7 +428,6 @@ class ACS {
 
 			case "GetParameterAttributesResponse":
 				$response = $Arguments[0];
-				$this->DUMPER($Method,$Arguments);
 				foreach ($response as $R) {
 					$this->DEBUG($Method,sprintf("%s",$R->Name));
 					$this->Attributes[$R->Name] = (object)array(

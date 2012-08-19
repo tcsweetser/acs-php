@@ -244,7 +244,8 @@ class ACS {
 					if (is_array($_array['Request'][2])) {
 						$P = trim($_array['Request'][0]);
 						$T = trim($_array['Request'][1]);
-						$XML.='<'.$P.' SOAP-ENC:arrayType="xsd:'.$T.'[1]">';
+						$C = count($_array['Request'][2]);
+						$XML.='<'.$P.' SOAP-ENC:arrayType="xsd:'.$T.'['.$C.']">';
 						foreach($_array['Request'][2] as $A) $XML.='<'.$T.'>'.$A.'</'.$T.'>';
 						$XML.='</'.$P.'>';
 					}
@@ -254,7 +255,8 @@ class ACS {
 					if (is_array($_array['Request'][2])) {
 						$P = trim($_array['Request'][0]);
 						$T = trim($_array['Request'][1]);
-						$XML.='<'.$P.' SOAP-ENC:arrayType="cwmp:'.$T.'[1]">';
+						$C = count($_array['Request'][2]);
+						$XML.='<'.$P.' SOAP-ENC:arrayType="cwmp:'.$T.'['.$C.']">';
 						$A = $_array['Request'][2];
 						$XML.='<'.$T.'>';
 						$XML.='<Name>'.$A["Name"].'</Name><Value xsi:type="xsd:'.$A["Type"].'">'.$A["Value"].'</Value>';
@@ -268,7 +270,7 @@ class ACS {
 		return $XML;
 	}
 
-	function Enqueue($Method,$TYPE,$Request,$ParameterKey='') {
+	public function Enqueue($Method,$TYPE,$Request,$ParameterKey='') {
 		$this->Queued[] = array(
 			'Method' => $Method,
 			'Arguments' => array(
@@ -279,13 +281,65 @@ class ACS {
 		);
 	}
 
+	// FIXME: NBN ATA will only respond to the 1st 7 string and ignore the rest ...
+	//
+	public function BulkSend($Method) {
+		// $this->BulkReq ...
+		if (array_key_exists($Method,$this->BulkReq))
+		if (array_key_exists('Request',$this->BulkReq[$Method])) {
+			$this->Queued[] = array(
+				'Method' => $Method,
+				'Arguments' => array(
+					'TYPE' => $this->BulkReq[$Method]['TYPE'],
+					'Request' => $this->BulkReq[$Method]["Request"],
+					'ParameterKey' => $this->BulkReq[$Method]['ParameterKey']
+				)
+			);
+			unset($this->BulkReq[$Method]);
+		}
+	}
+
+	// note: same interface as Enqueue
+	public function BulkEnqueue($Method,$TYPE,$Request,$ParameterKey='') {
+		// initialize the queue:
+		if (!array_key_exists($Method,$this->BulkReq)) $this->BulkReq[$Method] = array();
+		if (!array_key_exists('Request',$this->BulkReq[$Method]))
+			$this->BulkReq[$Method]["Request"] = array();
+		switch ($Method) {
+			case 'GetParameterValues':
+			case 'GetParameterAttributes':
+				if (is_array($Request[2]))
+				if (is_string($Request[2][0])) {
+					$ObjectName = $Request[2][0];
+					$this->BulkReq[$Method]["Request"][0] = 'ParameterNames';
+					$this->BulkReq[$Method]["Request"][1] = 'string';
+					if (count($this->BulkReq[$Method]["Request"])<3) 
+						$this->BulkReq[$Method]["Request"][2] = array($ObjectName);
+					else $this->BulkReq[$Method]["Request"][2][]= $ObjectName;
+					$this->BulkReq[$Method]['TYPE'] = $TYPE;
+					$this->BulkReq[$Method]['ParameterKey'] = $ParameterKey;
+				} else $this->ERROR('BulkEnqueue',"REQUEST[2] MUST BE ARRAY OF STRINGS");
+			break;
+			default:
+				$this->ERROR('BulkEnqueue',"UNSUPPORTED BULKREQ METHOD");
+		}
+	}
+
+	public function SendAllBulkRequests() {
+		$this->DEBUG('SendAllBulkRequests',sprintf("%d BULK JOBS IN QUEUE",count($this->Queued)));
+		if (is_array($this->BulkReq)) {
+			$Methods = array_keys($this->BulkReq);
+			foreach ($Methods as $M) $this->BulkSend($M);
+		}
+	}
+
 	public function SendJobs() {
 		$this->DEBUG('SendJobs',sprintf("%d JOBS IN QUEUE",count($this->Queued)));
-		//
-		// check for the empty queue and now we can safely send changes:
+		// Queue up all bulk reqs:
+		$this->SendAllBulkRequests();
 /*
-		if (count($this->Queued)==0) $this->SkyMesh(); // SkyMesh does our defaults
-		if (count($this->Queued)==0) $this->NBN(); // NBN sets up the ATA
+		if (count($this->Queued)==0) $this->SkyMesh(); // 'standard' settings
+		if (count($this->Queued)==0) $this->NBN(); // sets up and maintains the NBN ATA
 */
 		//
 		// XXX: pp 38-39, 3.7.2.4 Session Termination
@@ -299,7 +353,7 @@ class ACS {
 		//
 		// jobs in the queue, send one along now ...
 		$Method = 'SendJobs';
-		$JOB = array_shift($this->Queued);
+		$JOB = array_shift($this->Queued); // from the front of the queue
 		$XML = file_get_contents('request.xml');
 		$XML = str_replace('%%Method%%',$JOB['Method'],$XML);
 		$XML = str_replace('%%Arguments%%',$this->XML($JOB['Arguments']),$XML);
@@ -366,6 +420,7 @@ class ACS {
 
 			case "GetParameterValuesResponse":
 				$response = $Arguments[0];
+				$this->DUMPER($Method,$Arguments);
 				foreach ($response as $R) {
 					$this->DEBUG('GetParameterValues',sprintf("%s = (%s) %s",$R->Name,gettype($R->Value),$R->Value));
 					$this->Data[$R->Name] = $R->Value;
@@ -376,6 +431,7 @@ class ACS {
 
 			case "GetParameterAttributesResponse":
 				$response = $Arguments[0];
+				$this->DUMPER($Method,$Arguments);
 				foreach ($response as $R) {
 					$this->DEBUG($Method,sprintf("%s",$R->Name));
 					$this->Attributes[$R->Name] = (object)array(

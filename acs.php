@@ -67,8 +67,8 @@ class ACS {
 					if ($this->Data[$ObjectName] !== $DataReqd) {
 						$this->Enqueue("SetParameterValues",'SETLIST',array('ParameterList','ParameterValueStruct',
 							array('Type'=>$VarType,'Name'=>$ObjectName,'Value'=>($DataReqd?"1":"0"))
-						));
-						$this->Enqueue("GetParameterValues",'ARRAY',array('ParameterNames','string',array($ObjectName)));
+						),1);
+						$this->Enqueue("GetParameterValues",'ARRAY',array('ParameterNames','string',array($ObjectName),1),NULL);
 					}
 				break;
 				case 'string':
@@ -77,8 +77,8 @@ class ACS {
 					if ($this->Data[$ObjectName] !== $DataReqd) {
 						$this->Enqueue("SetParameterValues",'SETLIST',array('ParameterList','ParameterValueStruct',
 							array('Type'=>$VarType,'Name'=>$ObjectName,'Value'=>$DataReqd)
-						));
-						$this->Enqueue("GetParameterValues",'ARRAY',array('ParameterNames','string',array($ObjectName)));
+						),1);
+						$this->Enqueue("GetParameterValues",'ARRAY',array('ParameterNames','string',array($ObjectName),1),NULL);
 					}
 				break;
 				default:
@@ -105,7 +105,7 @@ class ACS {
 
 	private function NBN() {
 		$xVpPrefix = 'InternetGatewayDevice.Services.VoiceService.1.VoiceProfile.';
-		$xDigitMap = '(000|106|#x.T|101|013|12[23]x|*x.T|124xx|125xxx|119[46]|130xxxxxxx|13[1-3]xxx|1345xxxx|136xxx|130000|180[01]xxxxxx|180[2-9]xxx|183x.T|18[4-7]xx|18[89]xx|[5689]xxxxxxx|0[23478]xxxxxxxx|001x.T)';
+		$xDigitMap = '(000|121|106|#x.T|101|013|12[23]x|*x.T|124xx|125xxx|119[46]|130xxxxxxx|13[1-3]xxx|1345xxxx|136xxx|130000|180[01]xxxxxx|180[2-9]xxx|183x.T|18[4-7]xx|18[89]xx|[5689]xxxxxxx|0[23478]xxxxxxxx|001x.T)';
 
 		if (array_key_exists($xVpPrefix.'1.Enable',$this->Data)) {
 			$this->CheckDataChange($xVpPrefix.'1.DigitMap',                                  'string',$xDigitMap);
@@ -244,7 +244,7 @@ class ACS {
 					if (is_array($_array['Request'][2])) {
 						$P = trim($_array['Request'][0]);
 						$T = trim($_array['Request'][1]);
-						$C = count($_array['Request'][2]);
+						$C = is_integer($_array['Request'][3]) ? $_array['Request'][3] : 1;
 						$XML.='<'.$P.' SOAP-ENC:arrayType="xsd:'.$T.'['.$C.']">';
 						foreach($_array['Request'][2] as $A) $XML.='<'.$T.'>'.$A.'</'.$T.'>';
 						$XML.='</'.$P.'>';
@@ -255,7 +255,7 @@ class ACS {
 					if (is_array($_array['Request'][2])) {
 						$P = trim($_array['Request'][0]);
 						$T = trim($_array['Request'][1]);
-						$C = count($_array['Request'][2]);
+						$C = is_integer($_array['Request'][3]) ? $_array['Request'][3] : 1;
 						$XML.='<'.$P.' SOAP-ENC:arrayType="cwmp:'.$T.'['.$C.']">';
 						$A = $_array['Request'][2];
 						$XML.='<'.$T.'>';
@@ -316,6 +316,7 @@ class ACS {
 					if (count($this->BulkReq[$Method]["Request"])<3) 
 						$this->BulkReq[$Method]["Request"][2] = array($ObjectName);
 					else $this->BulkReq[$Method]["Request"][2][]= $ObjectName;
+					$this->BulkReq[$Method]["Request"][3]++; // incr # of Name/Value pairs
 					$this->BulkReq[$Method]['TYPE'] = $TYPE;
 					$this->BulkReq[$Method]['ParameterKey'] = $ParameterKey;
 				} else $this->ERROR('BulkEnqueue',"REQUEST[2] MUST BE ARRAY OF STRINGS");
@@ -326,7 +327,7 @@ class ACS {
 	}
 
 	public function SendAllBulkRequests() {
-		$this->DEBUG('SendAllBulkRequests',sprintf("%d BULK JOBS IN QUEUE",count($this->Queued)));
+		$this->DEBUG('SendAllBulkRequests',sprintf("%d BULK JOBS IN QUEUE",count($this->BulkReq)));
 		if (is_array($this->BulkReq)) {
 			$Methods = array_keys($this->BulkReq);
 			foreach ($Methods as $M) $this->BulkSend($M);
@@ -336,7 +337,7 @@ class ACS {
 	public function SendJobs() {
 		$this->DEBUG('SendJobs',sprintf("%d JOBS IN QUEUE",count($this->Queued)));
 		// Queue up all bulk reqs:
-		$this->SendAllBulkRequests();
+		// NO BULK REQ: $this->SendAllBulkRequests();
 		if (count($this->Queued)==0) $this->SkyMesh(); // 'standard' settings
 		if (count($this->Queued)==0) $this->NBN(); // sets up and maintains the NBN ATA
 		//
@@ -408,8 +409,8 @@ class ACS {
 						break;
 						default:
 							// FIXME: queue a bulk req for Values and Attributes
-							$this->Enqueue("GetParameterValues",'ARRAY',array('ParameterNames','string',array($R->Name)),NULL);
-							$this->Enqueue("GetParameterAttributes",'ARRAY',array('ParameterNames','string',array($R->Name)),NULL);
+							$this->Enqueue("GetParameterValues",'ARRAY',array('ParameterNames','string',array($R->Name),1),NULL);
+							$this->Enqueue("GetParameterAttributes",'ARRAY',array('ParameterNames','string',array($R->Name),1),NULL);
 							$this->Params[$R->Name] = ($R->Writable=="1")?"Writable":"ReadOnly";
 					}
 				}

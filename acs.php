@@ -66,8 +66,7 @@ class ACS {
 				case 'boolean':
 					if ($this->Data[$ObjectName] !== $DataReqd) {
 						$this->Enqueue("SetParameterValues",'SETLIST',array('ParameterList','ParameterValueStruct',
-							array('Type'=>$VarType,'Name'=>$ObjectName,'Value'=>($DataReqd?"1":"0"))
-						),1);
+							array('Type'=>$VarType,'Name'=>$ObjectName,'Value'=>($DataReqd?"1":"0")),1),"SET");
 						$this->Enqueue("GetParameterValues",'ARRAY',array('ParameterNames','string',array($ObjectName),1),NULL);
 					}
 				break;
@@ -76,8 +75,7 @@ class ACS {
 				case 'int':
 					if ($this->Data[$ObjectName] !== $DataReqd) {
 						$this->Enqueue("SetParameterValues",'SETLIST',array('ParameterList','ParameterValueStruct',
-							array('Type'=>$VarType,'Name'=>$ObjectName,'Value'=>$DataReqd)
-						),1);
+							array('Type'=>$VarType,'Name'=>$ObjectName,'Value'=>$DataReqd),1),"SET");
 						$this->Enqueue("GetParameterValues",'ARRAY',array('ParameterNames','string',array($ObjectName),1),NULL);
 					}
 				break;
@@ -85,6 +83,32 @@ class ACS {
 					$this->ERROR('CheckDataChange',"TYPE $VarType UNKNOWN");
 			}
 		} else $this->ERROR('CheckDataChange',"OBJECT $ObjectName NOT FOUND");
+	}
+
+	// match the type and the value, or send a change ...
+	private function CheckAttrChange( $ObjectName, $ReqdNotificationLevel ) {
+		$_level = -1;
+		switch ($ReqdNotificationLevel) {
+			case "Active": $_level = 2; break;
+			case "Passive": $_level = 1; break;
+			case "Off": $_level = 0; break;
+			default:
+				$this->ERROR('CheckAttrChange',"INVALID ReqdNotificationLevel");
+				return;
+		}
+		if (array_key_exists($ObjectName,$this->Attributes)) {
+			if ($this->Attribute[$ObjectName]->Notification !== $ReqdNotificationLevel) {
+				$this->Enqueue("SetParameterAttributes",'SETATTR',array('ParameterList','SetParameterAttributesStruct',
+					array(
+						'Name'=>$ObjectName,
+						'NotificationChange'=>"1",
+						'Notitification'=>$_level,
+						'AccessListChange'=>"0",
+						'AccessList'=>""
+					),1),"ATTR");
+				$this->Enqueue("GetParameterAttributes",'ARRAY',array('ParameterNames','string',array($ObjectName),1),NULL);
+			}
+		} else $this->ERROR('CheckAttrChange',"OBJECT $ObjectName NOT FOUND");
 	}
 
 	private function SkyMesh() {
@@ -113,14 +137,12 @@ class ACS {
 			$this->CheckDataChange($xVpPrefix.'1.RTP.DSCPMark',                              'unsignedInt',46);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.DSCPMark',                              'unsignedInt',46);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.OutboundProxy',                         'string',$GLOBALS['ACS_SIP_SBC']);
-			$this->CheckDataChange($xVpPrefix.'1.SIP.OutboundProxyPort',                     'unsignedInt',$GLOBALS['ACS_SIP_SBC_PORT']);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.ProxyServer',                           'string',$GLOBALS['ACS_SIP_REG']);
-			$this->CheckDataChange($xVpPrefix.'1.SIP.ProxyServerPort',                       'unsignedInt',$GLOBALS['ACS_SIP_REG_PORT']);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.RegisterExpires',                       'unsignedInt',3600);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.RegistrationPeriod',                    'unsignedInt',3240);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.UserAgentDomain',                       'string','');
+			$this->CheckDataChange($xVpPrefix.'1.FaxT38.Enable',                             'boolean',TRUE);
 			$this->CheckDataChange($xVpPrefix.'1.Line.1.Enable',                             'string','Enabled');
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.FaxT38.Enable',                      'boolean',TRUE);
 			$this->CheckDataChange($xVpPrefix.'1.Line.1.PhyReferenceList',                   'string',"1");
 			$this->CheckDataChange($xVpPrefix.'1.Line.1.CallingFeatures.CallWaitingEnable',  'boolean',TRUE);
 			$this->CheckDataChange($xVpPrefix.'1.Line.1.CallingFeatures.MWIEnable',          'boolean',TRUE);
@@ -134,6 +156,9 @@ class ACS {
 			$this->CheckDataChange($xVpPrefix.'1.Line.1.Codec.List.3.Enable',                'boolean',FALSE);
 			$this->CheckDataChange($xVpPrefix.'1.Line.1.Codec.List.3.PacketizationPeriod',   'string',"20");
 			$this->CheckDataChange($xVpPrefix.'1.Line.1.Codec.List.3.SilenceSuppression',    'boolean',FALSE);
+
+			// FIXME: inifinte loop: $this->CheckAttrChange($xVpPrefix.'1.Line.1.Status',    "Active");
+			// FIXME: inifinte loop: $this->CheckAttrChange($xVpPrefix.'1.Line.1.CallState', "Active");
 
 			// send SIP login details, if known .... else?
 			if (!is_null($this->SAMS)) {
@@ -259,9 +284,25 @@ class ACS {
 						$T = trim($_array['Request'][1]);
 						$C = is_integer($_array['Request'][3]) ? $_array['Request'][3] : 1;
 						$XML.='<'.$P.' SOAP-ENC:arrayType="cwmp:'.$T.'['.$C.']">';
-						$A = $_array['Request'][2];
+						$A = $_array['Request'][2]; // only 1
 						$XML.='<'.$T.'>';
 						$XML.='<Name>'.$A["Name"].'</Name><Value xsi:type="xsd:'.$A["Type"].'">'.$A["Value"].'</Value>';
+						$XML.='</'.$T.'>';
+						$XML.='</'.$P.'>';
+						$XML.='<ParameterKey>'.$_array['ParameterKey'].'</ParameterKey>';
+					}
+				break;
+				case 'SETATTR';
+					// a lil bit o parsing ...
+					if (is_array($_array['Request'][2])) {
+						$P = trim($_array['Request'][0]);
+						$T = trim($_array['Request'][1]);
+						$C = is_integer($_array['Request'][3]) ? $_array['Request'][3] : 1;
+						$XML.='<'.$P.' SOAP-ENC:arrayType="cwmp:'.$T.'['.$C.']">';
+						$A = $_array['Request'][2]; // only 1
+						$XML.='<'.$T.'>';
+						foreach(array('Name','NotificationChange','Notitification','AccessListChange','AccessList') as $X)
+							$XML.='<'.$X.'>'.$A[$X].'</'.$X.'>';
 						$XML.='</'.$T.'>';
 						$XML.='</'.$P.'>';
 						$XML.='<ParameterKey>'.$_array['ParameterKey'].'</ParameterKey>';

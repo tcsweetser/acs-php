@@ -113,7 +113,9 @@ class ACS {
 			$this->CheckDataChange($xVpPrefix.'1.RTP.DSCPMark',                              'unsignedInt',46);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.DSCPMark',                              'unsignedInt',46);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.OutboundProxy',                         'string',$GLOBALS['ACS_SIP_SBC']);
+			$this->CheckDataChange($xVpPrefix.'1.SIP.OutboundProxyPort',                     'unsignedInt',$GLOBALS['ACS_SIP_SBC_PORT']);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.ProxyServer',                           'string',$GLOBALS['ACS_SIP_REG']);
+			$this->CheckDataChange($xVpPrefix.'1.SIP.ProxyServerPort',                       'unsignedInt',$GLOBALS['ACS_SIP_REG_PORT']);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.RegisterExpires',                       'unsignedInt',3600);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.RegistrationPeriod',                    'unsignedInt',3240);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.UserAgentDomain',                       'string','');

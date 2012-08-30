@@ -129,7 +129,7 @@ class ACS {
 
 	private function NBN() {
 		$xVpPrefix = 'InternetGatewayDevice.Services.VoiceService.1.VoiceProfile.';
-		$xDigitMap = '(000E|106E|121|*x.T|#x.T|013|12[23]x|124xx|125xxx|119[46]|130xxxxxxx|13[1-3]xxx|1345xxxx|136xxx|130000|180[01]xxxxxx|180[2-9]xxx|183x.T|18[4-7]xx|18[89]xx|[5689]xxxxxxx|0[23478]xxxxxxxx|001x.T)';
+		$xDigitMap = '(000E|106E|1x1|*xx|*xxx|*x.T|#x.T|013|12[23]x|124xx|125xxx|119[46]|130xxxxxxx|13[1-3]xxx|1345xxxx|136xxx|130000|180[01]xxxxxx|180[2-9]xxx|183x.T|18[4-7]xx|18[89]xx|[35689]xxxxxxx|0[23478]xxxxxxxx|001x.T)';
 
 		if (array_key_exists($xVpPrefix.'1.Enable',$this->Data)) {
 			$this->CheckDataChange($xVpPrefix.'1.DigitMap',                                  'string',$xDigitMap);
@@ -138,8 +138,8 @@ class ACS {
 			$this->CheckDataChange($xVpPrefix.'1.SIP.DSCPMark',                              'unsignedInt',46);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.OutboundProxy',                         'string',$GLOBALS['ACS_SIP_SBC']);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.ProxyServer',                           'string',$GLOBALS['ACS_SIP_REG']);
-			$this->CheckDataChange($xVpPrefix.'1.SIP.RegisterExpires',                       'unsignedInt',36); // ,3600);
-			$this->CheckDataChange($xVpPrefix.'1.SIP.RegistrationPeriod',                    'unsignedInt',32); // ,3240);
+			$this->CheckDataChange($xVpPrefix.'1.SIP.RegisterExpires',                       'unsignedInt',32); // ,3600);
+			$this->CheckDataChange($xVpPrefix.'1.SIP.RegistrationPeriod',                    'unsignedInt',30); // ,3240);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.UserAgentDomain',                       'string','');
 			$this->CheckDataChange($xVpPrefix.'1.FaxT38.Enable',                             'boolean',TRUE);
 			$this->CheckDataChange($xVpPrefix.'1.Line.1.Enable',                             'string','Enabled');
@@ -165,6 +165,7 @@ class ACS {
 				$this->CheckDataChange($xVpPrefix.'1.Line.1.SIP.AuthUserName','string',$this->SAMS['number']);
 				$this->CheckDataChange($xVpPrefix.'1.Line.1.SIP.AuthPassword','string',$this->SAMS['password']);
 			}
+
 		} else {
 			// send AddObject for $xVpPrefix
 			$this->Enqueue("AddObject",'FLAT',array('ObjectName'=>$xVpPrefix,'ParameterKey'=>""));

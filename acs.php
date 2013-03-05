@@ -129,7 +129,7 @@ class ACS {
 
 	private function NBN() {
 		$xVpPrefix = 'InternetGatewayDevice.Services.VoiceService.1.VoiceProfile.';
-		$xDigitMap = '(000E|106E|1x1|*xx.T|013|12[23]x|124xx|125xxx|119[46]|130xxxxxxx|13xxxx|1345xxxx|136xxx|130000|180[01]xxxxxx|180[2-9]xxx|183x.T|18[4-7]xx|18[89]xx|[345689]xxxxxxx|0[23478]xxxxxxxx|001x.T)';
+		$xDigitMap = '(000E|106E|121|151|181|*xx.T|013|12[23]x|124xx|125xxx|119[46]|130xxxxxxx|13xxxx|1345xxxx|180[01]xxxxxx|180[2-9]xxx|183x.T|18[4-7]xx|18[89]xx|[345689]xxxxxxx|0[23478]xxxxxxxx|001x.T)';
 
 		if (array_key_exists($xVpPrefix.'1.Enable',$this->Data)) {
 			$this->CheckDataChange($xVpPrefix.'1.DigitMap',                                  'string',$xDigitMap);

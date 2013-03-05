@@ -33,7 +33,7 @@ class ACS {
 	public $Params;             // CPE parameters, ReadOnly or Writable
 	public $Queued;             // Reqs to sent to CPE
 	public $VarTypes;           // The (get)type of each CPE parameter
-	public $Attributes;         // FIXME: captured attributes per parameter
+	public $Attributes;         // captured attributes per parameter
 	public $Calls;              // counter of '__wakeup' calls
 	public $BulkReq;            // certain Methods support up to 256 reqs
 
@@ -42,14 +42,14 @@ class ACS {
 	private function ERROR($pre,$str)  { syslog(LOG_ERR,  sprintf("[%d] %s::%s",getmypid(),$pre,$str)); }
 
 	private function DUMPER($TITLE, $anything) {
-		ob_start();
-		print "===============================================================\n";
-		print "*** $TITLE ***\n";
-		print "===============================================================\n";
-		var_dump($anything);
-		print "===============================================================\n";
-		$dumping = ob_get_clean();
-		file_put_contents('/tmp/ACS.dumped.txt',$dumping,LOCK_EX|FILE_APPEND);
+		//	ob_start();
+		//	print "===============================================================\n";
+		//	print "*** $TITLE ***\n";
+		//	print "===============================================================\n";
+		//	var_dump($anything);
+		//	print "===============================================================\n";
+		//	$dumping = ob_get_clean();
+		//	file_put_contents('/tmp/ACS.dumped.txt',$dumping,LOCK_EX|FILE_APPEND);
 		foreach(explode("\n",$dumping) as $line) $this->DEBUG('DUMPER',$line);
 	}
 
@@ -129,7 +129,7 @@ class ACS {
 
 	private function NBN() {
 		$xVpPrefix = 'InternetGatewayDevice.Services.VoiceService.1.VoiceProfile.';
-		$xDigitMap = '(000E|106E|1x1|*xx|*xxx|*x.T|#x.T|013|12[23]x|124xx|125xxx|119[46]|130xxxxxxx|13[1-3]xxx|1345xxxx|136xxx|130000|180[01]xxxxxx|180[2-9]xxx|183x.T|18[4-7]xx|18[89]xx|[35689]xxxxxxx|0[23478]xxxxxxxx|001x.T)';
+		$xDigitMap = '(000E|106E|1x1|*xx.T|013|12[23]x|124xx|125xxx|119[46]|130xxxxxxx|13xxxx|1345xxxx|136xxx|130000|180[01]xxxxxx|180[2-9]xxx|183x.T|18[4-7]xx|18[89]xx|[345689]xxxxxxx|0[23478]xxxxxxxx|001x.T)';
 
 		if (array_key_exists($xVpPrefix.'1.Enable',$this->Data)) {
 			$this->CheckDataChange($xVpPrefix.'1.DigitMap',                                  'string',$xDigitMap);
@@ -138,8 +138,8 @@ class ACS {
 			$this->CheckDataChange($xVpPrefix.'1.SIP.DSCPMark',                              'unsignedInt',46);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.OutboundProxy',                         'string',$GLOBALS['ACS_SIP_SBC']);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.ProxyServer',                           'string',$GLOBALS['ACS_SIP_REG']);
-			$this->CheckDataChange($xVpPrefix.'1.SIP.RegisterExpires',                       'unsignedInt',32); // ,3600);
-			$this->CheckDataChange($xVpPrefix.'1.SIP.RegistrationPeriod',                    'unsignedInt',30); // ,3240);
+			$this->CheckDataChange($xVpPrefix.'1.SIP.RegisterExpires',                       'unsignedInt',1800);
+			$this->CheckDataChange($xVpPrefix.'1.SIP.RegistrationPeriod',                    'unsignedInt',1740);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.UserAgentDomain',                       'string','');
 			$this->CheckDataChange($xVpPrefix.'1.FaxT38.Enable',                             'boolean',TRUE);
 			$this->CheckDataChange($xVpPrefix.'1.Line.1.Enable',                             'string','Enabled');

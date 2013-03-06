@@ -250,10 +250,10 @@ class ACS {
 
 	public function __destruct() {
 		$this->DEBUG('DESTRUCT','SessionID = '.session_id());
-		$this->DEBUG('COUNTERS',sprintf('%d PAREMETER NAMES',count($this->Params)));
-		$this->DEBUG('COUNTERS',sprintf('%d PAREMETER VALUES',count($this->Data)));
-		$this->DEBUG('COUNTERS',sprintf('%d PAREMETER ATTRIBUTES',count($this->Attributes)));
-		$this->DEBUG('COUNTERS',sprintf('%d WAKEUP CALLS',$this->Calls));
+		// DEBUG: $this->DEBUG('COUNTERS',sprintf('%d PARAMETER NAMES',count($this->Params)));
+		// DEBUG: $this->DEBUG('COUNTERS',sprintf('%d PARAMETER VALUES',count($this->Data)));
+		// DEBUG: $this->DEBUG('COUNTERS',sprintf('%d PARAMETER ATTRIBUTES',count($this->Attributes)));
+		// DEBUG: $this->DEBUG('COUNTERS',sprintf('%d WAKEUP CALLS',$this->Calls));
 	}
 
 	// yes, I know, but it is easier than using an XML class ...

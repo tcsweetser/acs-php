@@ -190,26 +190,22 @@ class ACS {
 	private function FetchSAMS() {
 		$dbh = DBH();
 		if (is_null($this->SAMS)) {
-/*
 			if (is_object($this->DeviceID)) {
 				if (strlen($this->DeviceID->SerialNumber)>0) {
-*/
 					$sth = $dbh->query(sprintf(
 						"select * from nbn.avc_provisioning_univ where avc_id='%s' or ipaddr='%s'",
 						$this->Data['InternetGatewayDevice.DeviceInfo.ProvisioningCode'],$_SERVER['REMOTE_ADDR']
 					));
 					$this->SAMS = $sth->fetch(PDO::FETCH_ASSOC);
 				} else {
-					$this->SAMS = NULL; // stays NULL
+					// $this->SAMS = NULL; // stays NULL
 					// exit ........
 					session_destroy();
 					header('HTTP/1.1 204 No Content');
 					die; // just send an empty response ...
 				}
-/*
 			}
 		}
-*/
 	}
 
 	private function SaveToCache() {

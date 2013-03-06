@@ -134,7 +134,6 @@ class ACS {
 		if (array_key_exists($xVpPrefix.'1.Enable',$this->Data)) {
 			$this->CheckDataChange($xVpPrefix.'1.DigitMap',                                  'string',$xDigitMap);
 			$this->CheckDataChange($xVpPrefix.'1.Enable',                                    'string','Enabled');
-			$this->CheckDataChange($xVpPrefix.'1.Reset',                                     'boolean',TRUE);
 			$this->CheckDataChange($xVpPrefix.'1.RTP.DSCPMark',                              'unsignedInt',46);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.DSCPMark',                              'unsignedInt',46);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.OutboundProxy',                         'string',$GLOBALS['ACS_SIP_SBC']);

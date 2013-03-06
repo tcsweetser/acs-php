@@ -42,14 +42,14 @@ class ACS {
 	private function ERROR($pre,$str)  { syslog(LOG_ERR,  sprintf("[%d] %s::%s",getmypid(),$pre,$str)); }
 
 	private function DUMPER($TITLE, $anything) {
-		//	ob_start();
-		//	print "===============================================================\n";
-		//	print "*** $TITLE ***\n";
-		//	print "===============================================================\n";
-		//	var_dump($anything);
-		//	print "===============================================================\n";
-		//	$dumping = ob_get_clean();
-		//	file_put_contents('/tmp/ACS.dumped.txt',$dumping,LOCK_EX|FILE_APPEND);
+		ob_start();
+		print "===============================================================\n";
+		print "*** $TITLE ***\n";
+		print "===============================================================\n";
+		var_dump($anything);
+		print "===============================================================\n";
+		$dumping = ob_get_clean();
+		///file_put_contents('/tmp/ACS.dumped.txt',$dumping,LOCK_EX|FILE_APPEND);
 		foreach(explode("\n",$dumping) as $line) $this->DEBUG('DUMPER',$line);
 	}
 
@@ -134,6 +134,7 @@ class ACS {
 		if (array_key_exists($xVpPrefix.'1.Enable',$this->Data)) {
 			$this->CheckDataChange($xVpPrefix.'1.DigitMap',                                  'string',$xDigitMap);
 			$this->CheckDataChange($xVpPrefix.'1.Enable',                                    'string','Enabled');
+			$this->CheckDataChange($xVpPrefix.'1.Reset',                                     'boolean',TRUE);
 			$this->CheckDataChange($xVpPrefix.'1.RTP.DSCPMark',                              'unsignedInt',46);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.DSCPMark',                              'unsignedInt',46);
 			$this->CheckDataChange($xVpPrefix.'1.SIP.OutboundProxy',                         'string',$GLOBALS['ACS_SIP_SBC']);
@@ -197,7 +198,9 @@ class ACS {
 						$this->Data['InternetGatewayDevice.DeviceInfo.ProvisioningCode'],$_SERVER['REMOTE_ADDR']
 					));
 					$this->SAMS = $sth->fetch(PDO::FETCH_ASSOC);
+					$this->DUMPER('SAMS DATA',$this->SAMS);
 				} else {
+					$this->ERROR('SAMS DATA','NOT FOUND');
 					// $this->SAMS = NULL; // stays NULL
 					// exit ........
 					session_destroy();
@@ -332,7 +335,7 @@ class ACS {
 		);
 	}
 
-	// FIXME: NBN ATA will only respond to the 1st 7 string and ignore the rest ...
+	// FIXME: NBN ATA will only respond to the 1st 7 strings and ignore the rest ...
 	//
 	public function BulkSend($Method) {
 		// $this->BulkReq ...
@@ -534,7 +537,7 @@ class ACS {
 				foreach ($this->RawParameterList as $P) $this->Data[$P->Name]=$P->Value;
 				foreach ($this->Data as $N => $V)
 				$this->DEBUG($Method,sprintf("%s = %s\n",$N,$V));
-				// check up on CPE Methods"
+				// check up on CPE Methods
 				$this->Enqueue("GetRPCMethods",'VOID',NULL,NULL);
 				// kick off a cycle of reqs to walk the CPE Object tree:
 				$this->Enqueue("GetParameterNames",'FLAT',array('ParameterPath'=>'InternetGatewayDevice.','NextLevel'=>"1"),NULL);

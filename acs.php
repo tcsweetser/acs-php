@@ -587,7 +587,7 @@ foreach(getallheaders() as $h => $v) {
 
 if ( count($_SESSION)>0 ) {
 	// if we have a session with data, CPE is "logged in"
-	syslog(LOG_INFO, sprintf("[%d] AUTH::%s (%s)",getmypid(),"SESSION ACTIVE",session_id()) );
+	syslog(LOG_INFO, sprintf("%s [%d] AUTH::%s (%s)",$_SERVER['REMOTE_ADDR'],getmypid(),"SESSION ACTIVE",session_id()) );
 } elseif (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
 	// if we have a username and password, CPE is "logging in"
 	$_SESSION['PHP_AUTH_USER'] = $_SERVER['PHP_AUTH_USER'];

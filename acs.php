@@ -37,9 +37,9 @@ class ACS {
 	public $Calls;              // counter of '__wakeup' calls
 	public $BulkReq;            // certain Methods support up to 256 reqs
 
-	private function DEBUG($pre,$str)  { syslog(LOG_DEBUG,sprintf("[%d] %s::%s",getmypid(),$pre,$str)); }
-	private function logger($pre,$str) { syslog(LOG_INFO, sprintf("[%d] %s::%s",getmypid(),$pre,$str)); }
-	private function ERROR($pre,$str)  { syslog(LOG_ERR,  sprintf("[%d] %s::%s",getmypid(),$pre,$str)); }
+	private function DEBUG($pre,$str)  { syslog(LOG_DEBUG,sprintf("%s [%d] %s::%s",$_SERVER['REMOTE_ADDR'],getmypid(),$pre,$str)); }
+	private function logger($pre,$str) { syslog(LOG_INFO, sprintf("%s [%d] %s::%s",$_SERVER['REMOTE_ADDR'],getmypid(),$pre,$str)); }
+	private function ERROR($pre,$str)  { syslog(LOG_ERR,  sprintf("%s [%d] %s::%s",$_SERVER['REMOTE_ADDR'],getmypid(),$pre,$str)); }
 
 	private function DUMPER($TITLE, $anything) {
 		ob_start();

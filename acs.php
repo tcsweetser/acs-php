@@ -36,6 +36,8 @@ class ACS {
 	public $Attributes;         // captured attributes per parameter
 	public $Calls;              // counter of '__wakeup' calls
 	public $BulkReq;            // certain Methods support up to 256 reqs
+	public $LastEvent;          // what was the last event?
+	public $xVpPrefix;          // tr104 object for voice profiles
 
 	private function DEBUG($pre,$str)  { syslog(LOG_DEBUG,sprintf("%s [%d] %s::%s",$_SERVER['REMOTE_ADDR'],getmypid(),$pre,$str)); }
 	private function logger($pre,$str) { syslog(LOG_INFO, sprintf("%s [%d] %s::%s",$_SERVER['REMOTE_ADDR'],getmypid(),$pre,$str)); }
@@ -128,65 +130,51 @@ class ACS {
 	}
 
 	private function NBN() {
-		$xVpPrefix = 'InternetGatewayDevice.Services.VoiceService.1.VoiceProfile.';
+		$this->xVpPrefix = 'InternetGatewayDevice.Services.VoiceService.1.VoiceProfile.';
 		$xDigitMap = '(000E|106E|111|121|151|181|*xx.T|013|12[23]x|124xx|125xxx|119[46]|130xxxxxxx|13xxxx|1345xxxx|180[01]xxxxxx|180[2-9]xxx|183x.T|18[4-7]xx|18[89]xx|[345689]xxxxxxx|0[23478]xxxxxxxx|001x.T)';
 
-		if (array_key_exists($xVpPrefix.'1.Enable',$this->Data)) {
-			$this->CheckDataChange($xVpPrefix.'1.DigitMap',                                  'string',$xDigitMap);
-			$this->CheckDataChange($xVpPrefix.'1.Enable',                                    'string','Enabled');
-			$this->CheckDataChange($xVpPrefix.'1.RTP.DSCPMark',                              'unsignedInt',46);
-			$this->CheckDataChange($xVpPrefix.'1.SIP.DSCPMark',                              'unsignedInt',46);
-			$this->CheckDataChange($xVpPrefix.'1.SIP.OutboundProxy',                         'string',$GLOBALS['ACS_SIP_SBC']);
-			$this->CheckDataChange($xVpPrefix.'1.SIP.ProxyServer',                           'string',$GLOBALS['ACS_SIP_REG']);
-			$this->CheckDataChange($xVpPrefix.'1.SIP.RegisterExpires',                       'unsignedInt',1800);
-			$this->CheckDataChange($xVpPrefix.'1.SIP.RegistrationPeriod',                    'unsignedInt',1740);
-			$this->CheckDataChange($xVpPrefix.'1.SIP.UserAgentDomain',                       'string','');
-			$this->CheckDataChange($xVpPrefix.'1.FaxT38.Enable',                             'boolean',TRUE);
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.Enable',                             'string','Enabled');
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.PhyReferenceList',                   'string',"1");
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.CallingFeatures.CallWaitingEnable',  'boolean',TRUE);
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.CallingFeatures.MWIEnable',          'boolean',TRUE);
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.CallingFeatures.CallTransferEnable', 'boolean',FALSE);
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.Codec.List.1.Enable',                'boolean',TRUE);
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.Codec.List.1.PacketizationPeriod',   'string',"20");
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.Codec.List.1.SilenceSuppression',    'boolean',FALSE);
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.Codec.List.2.Enable',                'boolean',TRUE);
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.Codec.List.2.PacketizationPeriod',   'string',"20");
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.Codec.List.2.SilenceSuppression',    'boolean',FALSE);
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.Codec.List.3.Enable',                'boolean',FALSE);
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.Codec.List.3.PacketizationPeriod',   'string',"20");
-			$this->CheckDataChange($xVpPrefix.'1.Line.1.Codec.List.3.SilenceSuppression',    'boolean',FALSE);
+		if (array_key_exists($this->xVpPrefix.'1.Enable',$this->Data)) {
+			$this->CheckDataChange($this->xVpPrefix.'1.DigitMap',                                  'string',$xDigitMap);
+			$this->CheckDataChange($this->xVpPrefix.'1.Enable',                                    'string','Enabled');
+			$this->CheckDataChange($this->xVpPrefix.'1.RTP.DSCPMark',                              'unsignedInt',46);
+			$this->CheckDataChange($this->xVpPrefix.'1.SIP.DSCPMark',                              'unsignedInt',46);
+			$this->CheckDataChange($this->xVpPrefix.'1.SIP.OutboundProxy',                         'string',$GLOBALS['ACS_SIP_SBC']);
+			$this->CheckDataChange($this->xVpPrefix.'1.SIP.ProxyServer',                           'string',$GLOBALS['ACS_SIP_REG']);
+			$this->CheckDataChange($this->xVpPrefix.'1.SIP.RegisterExpires',                       'unsignedInt',1800);
+			$this->CheckDataChange($this->xVpPrefix.'1.SIP.RegistrationPeriod',                    'unsignedInt',1740);
+			$this->CheckDataChange($this->xVpPrefix.'1.SIP.UserAgentDomain',                       'string','');
+			$this->CheckDataChange($this->xVpPrefix.'1.FaxT38.Enable',                             'boolean',TRUE);
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.Enable',                             'string','Enabled');
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.PhyReferenceList',                   'string',"1");
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.CallingFeatures.CallWaitingEnable',  'boolean',TRUE);
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.CallingFeatures.MWIEnable',          'boolean',TRUE);
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.CallingFeatures.CallTransferEnable', 'boolean',FALSE);
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.Codec.List.1.Enable',                'boolean',TRUE);
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.Codec.List.1.PacketizationPeriod',   'string',"20");
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.Codec.List.1.SilenceSuppression',    'boolean',FALSE);
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.Codec.List.2.Enable',                'boolean',TRUE);
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.Codec.List.2.PacketizationPeriod',   'string',"20");
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.Codec.List.2.SilenceSuppression',    'boolean',FALSE);
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.Codec.List.3.Enable',                'boolean',FALSE);
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.Codec.List.3.PacketizationPeriod',   'string',"20");
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.Codec.List.3.SilenceSuppression',    'boolean',FALSE);
 
-			// FIXME: inifinte loop: $this->CheckAttrChange($xVpPrefix.'1.Line.1.Status',    "Active");
-			// FIXME: inifinte loop: $this->CheckAttrChange($xVpPrefix.'1.Line.1.CallState', "Active");
+			// FIXME: inifinte loop: $this->CheckAttrChange($this->xVpPrefix.'1.Line.1.Status',    "Active");
+			// FIXME: inifinte loop: $this->CheckAttrChange($this->xVpPrefix.'1.Line.1.CallState', "Active");
 
 			// send SIP login details, if known .... else?
 			if (!is_null($this->SAMS)) {
-				$this->CheckDataChange($xVpPrefix.'1.Line.1.SIP.AuthUserName','string',$this->SAMS['number']);
-				$this->CheckDataChange($xVpPrefix.'1.Line.1.SIP.AuthPassword','string',$this->SAMS['password']);
+				$this->CheckDataChange($this->xVpPrefix.'1.Line.1.SIP.AuthUserName','string',$this->SAMS['number']);
+				$this->CheckDataChange($this->xVpPrefix.'1.Line.1.SIP.AuthPassword','string',$this->SAMS['password']);
 			}
 
 		} else {
-			// send AddObject for $xVpPrefix
-			$this->Enqueue("AddObject",'FLAT',array('ObjectName'=>$xVpPrefix,'ParameterKey'=>""));
+			// send AddObject for $this->xVpPrefix
+			$this->Enqueue("AddObject",'FLAT',array('ObjectName'=>$this->xVpPrefix),"ADD");
 			// kick off a walk of the object to get the current values
-			$this->Enqueue("GetParameterNames",'FLAT',array('ParameterPath'=>$xVpPrefix,'NextLevel'=>"1"),NULL);
+			$this->Enqueue("GetParameterNames",'FLAT',array('ParameterPath'=>$this->xVpPrefix,'NextLevel'=>"1"),NULL);
 		}
-		if (array_key_exists($xVpPrefix.'2.Enable',$this->Data)) {
-			// send DeleteObject
-			$this->Enqueue("DeleteObject",'FLAT',array('ObjectName'=>$xVpPrefix.'2.'),"DeleteObject");
-			$this->ERROR('DeleteObject',$xVpPrefix.'2');
-		}
-		if (array_key_exists($xVpPrefix.'3.Enable',$this->Data)) {
-			// send DeleteObject
-			$this->Enqueue("DeleteObject",'FLAT',array('ObjectName'=>$xVpPrefix.'3.'),"DeleteObject");
-			$this->ERROR('DeleteObject',$xVpPrefix.'3');
-		}
-		if (array_key_exists($xVpPrefix.'4.Enable',$this->Data)) {
-			// send DeleteObject
-			$this->Enqueue("DeleteObject",'FLAT',array('ObjectName'=>$xVpPrefix.'4.'),"DeleteObject");
-			$this->ERROR('DeleteObject',$xVpPrefix.'4');
-		}
+
 		return (count($this->Queued)>0);
 	}
 
@@ -240,6 +228,8 @@ class ACS {
 		$this->Username = $_SESSION['PHP_AUTH_USER'];
 		$this->Password = $_SESSION['PHP_AUTH_PW'];
 		$this->Calls = 0;
+		$this->LastEvent = '99 NONE';
+		$this->xVpPrefix = 'InternetGatewayDevice.Services.VoiceService.1.VoiceProfile.';
 	}
 
 	public function __sleep() {
@@ -391,12 +381,34 @@ class ACS {
 	}
 
 	public function SendJobs() {
+		// What is queued?
 		$this->DEBUG('SendJobs',sprintf("%d JOBS IN QUEUE",count($this->Queued)));
 		// Queue up all bulk reqs:
 		// NO BULK REQ: $this->SendAllBulkRequests();
 		if (count($this->Queued)==0) $this->SkyMesh(); // 'standard' settings
 		if (count($this->Queued)==0) $this->NBN(); // sets up and maintains the NBN ATA
 		//
+		// clean out all other profiles ...
+		if (count($this->Queued)==0) {
+			if ( array_key_exists($this->xVpPrefix.'2.Enable',$this->Params) ) {
+				// send DeleteObject
+				$this->Enqueue("DeleteObject",'FLAT',array('ObjectName'=>$this->xVpPrefix.'2.'),"DEL");
+				$this->ERROR('DeleteObject',$this->xVpPrefix.'2');
+				unset($this->Params[$this->xVpPrefix.'2.Enable']);
+			}
+			if ( array_key_exists($this->xVpPrefix.'3.Enable',$this->Params) ) {
+				// send DeleteObject
+				$this->Enqueue("DeleteObject",'FLAT',array('ObjectName'=>$this->xVpPrefix.'3.'),"DEL");
+				$this->ERROR('DeleteObject',$this->xVpPrefix.'3');
+				unset($this->Params[$this->xVpPrefix.'3.Enable']);
+			}
+			if ( array_key_exists($this->xVpPrefix.'4.Enable',$this->Params) ) {
+				// send DeleteObject
+				$this->Enqueue("DeleteObject",'FLAT',array('ObjectName'=>$this->xVpPrefix.'4.'),"DEL");
+				$this->ERROR('DeleteObject',$this->xVpPrefix.'4');
+				unset($this->Params[$this->xVpPrefix.'4.Enable']);
+			}
+		}
 		// XXX: pp 38-39, 3.7.2.4 Session Termination
 		if (count($this->Queued)==0) {
 			$this->DEBUG('DESTROY','SessionID = '.session_id());
@@ -414,19 +426,23 @@ class ACS {
 		$XML = str_replace('%%Arguments%%',$this->XML($JOB['Arguments']),$XML);
 		$this->DEBUG($Method,sprintf("SENDING %s",$JOB['Method']));
 		header('Content-Type: text/xml; charset=utf-8');
+
+		// DEBUG:
+		$this->DUMPER('SENDJOBS',$XML);
+
 		die($XML);
 	}
 
 	public function __call($Method, $Arguments) {
 		$this->DEBUG('METHOD:'.$Method,'SessionID = '.session_id());
 
-		// DEBUG:
-		if (is_object($this->DeviceID)) {
-			$this->logger($Method,sprintf("Manufacturer = %s\n",$this->DeviceID->Manufacturer));
-			$this->logger($Method,sprintf("OUI          = %s\n",$this->DeviceID->OUI));
-			$this->logger($Method,sprintf("ProductClass = %s\n",$this->DeviceID->ProductClass));
-			$this->logger($Method,sprintf("SerialNumber = %s\n",$this->DeviceID->SerialNumber));
-		}
+//	// DEBUG:
+//	if (is_object($this->DeviceID)) {
+//		$this->logger($Method,sprintf("Manufacturer = %s\n",$this->DeviceID->Manufacturer));
+//		$this->logger($Method,sprintf("OUI          = %s\n",$this->DeviceID->OUI));
+//		$this->logger($Method,sprintf("ProductClass = %s\n",$this->DeviceID->ProductClass));
+//		$this->logger($Method,sprintf("SerialNumber = %s\n",$this->DeviceID->SerialNumber));
+//	}
 
 		$this->FetchSAMS(); // updates?
 
@@ -534,11 +550,24 @@ class ACS {
 				$this->DEBUG($Method,sprintf("CurrentTime  = %s\n",$this->CurrentTime));
 				$this->DEBUG($Method,sprintf("RetryCount   = %s\n",$this->RetryCount));
 				foreach ($this->RawEvents as $idx => $E) $this->Events[$idx]=(array)$E;
-				foreach ($this->Events as $idx => $E)
-				$this->DEBUG($Method,sprintf("Event:[%02x] %s %s\n",$idx,$E["EventCode"],$E["CommandKey"]));
+				foreach ($this->Events as $idx => $E) $this->DEBUG($Method,sprintf("Event:[%02x]|%s|",$idx,$E["EventCode"]));
+				$this->LastEvent = $this->Events[count($this->Events)-1]["EventCode"];
+				$this->DEBUG($Method,sprintf("Last Event:|%s|",$this->LastEvent));
 				foreach ($this->RawParameterList as $P) $this->Data[$P->Name]=$P->Value;
 				foreach ($this->Data as $N => $V)
 				$this->DEBUG($Method,sprintf("%s = %s\n",$N,$V));
+				// Reset?
+				if ($this->LastEvent == "1 BOOT") {
+					$this->LastEvent = '1 RESET';
+/*
+					$this->Enqueue("SetParameterValues",'SETLIST',array('ParameterList','ParameterValueStruct',
+						array('Type'=>'boolean','Name'=>$this->xVpPrefix.'1.Reset','Value'=>"1"),1),"RESET");
+*/
+
+					$this->Enqueue("DeleteObject",'FLAT',array('ObjectName'=>$this->xVpPrefix.'1.'),"DEL");
+
+					$this->DUMPER('RESET',$this->Queued);
+				}
 				// check up on CPE Methods
 				$this->Enqueue("GetRPCMethods",'VOID',NULL,NULL);
 				// kick off a cycle of reqs to walk the CPE Object tree:

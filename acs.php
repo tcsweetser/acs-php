@@ -175,14 +175,17 @@ class ACS {
 		if (array_key_exists($xVpPrefix.'2.Enable',$this->Data)) {
 			// send DeleteObject
 			$this->Enqueue("DeleteObject",'FLAT',array('ObjectName'=>$xVpPrefix.'2.'),"DeleteObject");
+			$this->ERROR('DeleteObject',$xVpPrefix.'2');
 		}
 		if (array_key_exists($xVpPrefix.'3.Enable',$this->Data)) {
 			// send DeleteObject
 			$this->Enqueue("DeleteObject",'FLAT',array('ObjectName'=>$xVpPrefix.'3.'),"DeleteObject");
+			$this->ERROR('DeleteObject',$xVpPrefix.'3');
 		}
 		if (array_key_exists($xVpPrefix.'4.Enable',$this->Data)) {
 			// send DeleteObject
 			$this->Enqueue("DeleteObject",'FLAT',array('ObjectName'=>$xVpPrefix.'4.'),"DeleteObject");
+			$this->ERROR('DeleteObject',$xVpPrefix.'4');
 		}
 		return (count($this->Queued)>0);
 	}

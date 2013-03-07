@@ -146,7 +146,7 @@ class ACS {
 			$this->CheckDataChange($this->xVpPrefix.'1.FaxT38.Enable',                             'boolean',TRUE);
 			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.Enable',                             'string','Enabled');
 			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.PhyReferenceList',                   'string',"1");
-			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.CallingFeatures.CallWaitingEnable',  'boolean',FALSE);
+			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.CallingFeatures.CallWaitingEnable',  'boolean',TRUE);
 			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.CallingFeatures.MWIEnable',          'boolean',TRUE);
 			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.CallingFeatures.CallTransferEnable', 'boolean',FALSE);
 			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.Codec.List.1.Enable',                'boolean',TRUE);

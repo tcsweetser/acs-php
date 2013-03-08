@@ -184,7 +184,7 @@ class ACS {
 			if (is_object($this->DeviceID)) {
 				if (strlen($this->DeviceID->SerialNumber)>0) {
 					$sth = $dbh->query(sprintf(
-						"select * from nbn.avc_provisioning_univ where avc_id='%s' or ipaddr='%s'",
+						"select * from nbn.avc_provisioning_univ where avc_id='%s' and ipaddr='%s'",
 						$this->Data['InternetGatewayDevice.DeviceInfo.ProvisioningCode'],$_SERVER['REMOTE_ADDR']
 					));
 					$this->SAMS = $sth->fetch(PDO::FETCH_ASSOC);

@@ -141,7 +141,7 @@ class ACS {
 			$this->CheckDataChange($this->xVpPrefix.'1.SIP.OutboundProxy',                         'string',$GLOBALS['ACS_SIP_SBC']);
 			$this->CheckDataChange($this->xVpPrefix.'1.SIP.ProxyServer',                           'string',$GLOBALS['ACS_SIP_REG']);
 			$this->CheckDataChange($this->xVpPrefix.'1.SIP.RegisterExpires',                       'unsignedInt',1800);
-			$this->CheckDataChange($this->xVpPrefix.'1.SIP.RegistrationPeriod',                    'unsignedInt',1740);
+			$this->CheckDataChange($this->xVpPrefix.'1.SIP.RegistrationPeriod',                    'unsignedInt',900);
 			$this->CheckDataChange($this->xVpPrefix.'1.SIP.UserAgentDomain',                       'string','');
 			$this->CheckDataChange($this->xVpPrefix.'1.FaxT38.Enable',                             'boolean',TRUE);
 			$this->CheckDataChange($this->xVpPrefix.'1.Line.1.Enable',                             'string','Enabled');

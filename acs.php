@@ -138,8 +138,13 @@ class ACS {
 			$this->CheckDataChange($this->xVpPrefix.'1.Enable',                                    'string','Enabled');
 			$this->CheckDataChange($this->xVpPrefix.'1.RTP.DSCPMark',                              'unsignedInt',46);
 			$this->CheckDataChange($this->xVpPrefix.'1.SIP.DSCPMark',                              'unsignedInt',46);
+/*
 			$this->CheckDataChange($this->xVpPrefix.'1.SIP.OutboundProxy',                         'string',$GLOBALS['ACS_SIP_SBC']);
 			$this->CheckDataChange($this->xVpPrefix.'1.SIP.ProxyServer',                           'string',$GLOBALS['ACS_SIP_REG']);
+*/
+			// BUG FIX: must be set in case of OLT reset:
+			$this->CheckDataChange($this->xVpPrefix.'1.SIP.RegistrarServer',                       'string',$GLOBALS['ACS_SIP_REG']);
+			//
 			$this->CheckDataChange($this->xVpPrefix.'1.SIP.RegisterExpires',                       'unsignedInt',1800);
 			$this->CheckDataChange($this->xVpPrefix.'1.SIP.RegistrationPeriod',                    'unsignedInt',900);
 			$this->CheckDataChange($this->xVpPrefix.'1.SIP.UserAgentDomain',                       'string','');

@@ -466,6 +466,8 @@ class ACS {
 				$this->SendJobs();
 			break;
 
+			/* ACS TO CPE RESPONSES */
+
 			case "GetRPCMethodsResponse":
 				$response = $Arguments[0];
 				foreach ($response as $idx => $R) {
@@ -539,6 +541,8 @@ class ACS {
 				$this->SendJobs();
 			break;
 
+			/* CPE TO ACS METHODS */
+
 			case "Inform":
 				// get the data ...
 				$this->DeviceID = array_shift($Arguments);
@@ -578,14 +582,16 @@ class ACS {
 				// kick off a cycle of reqs to walk the CPE Object tree:
 				$this->Enqueue("GetParameterNames",'FLAT',array('ParameterPath'=>'InternetGatewayDevice.','NextLevel'=>"1"),NULL);
 				// the reply:
-				// FIXME: does not work: return new SoapVar(1,XSD_INT,'unsignedInt',NULL,'MaxEnvelopes');
+        $GLOBALS['server']->addSoapHeader( new SoapHeader('urn:dslforum-org:cwmp-1-0', 'ID', $this->ID, TRUE) );
+        $GLOBALS['server']->addSoapHeader( new SoapHeader('urn:dslforum-org:cwmp-1-0', 'HoldRequests', "0", TRUE) );
 				return NULL;
 			break;
 
 			case "ID":
-				// TODO: Add Session ID to SOAP HEADER?
 				$this->ID = $Arguments[0];
-				// FIXME: likely not needed: $this->server->addSoapHeader( new SoapHeader($this->CWMP, 'ID', $this->ID, TRUE) );
+				// the reply:
+        $GLOBALS['server']->addSoapHeader( new SoapHeader('urn:dslforum-org:cwmp-1-0', 'ID', $this->ID, TRUE) );
+        $GLOBALS['server']->addSoapHeader( new SoapHeader('urn:dslforum-org:cwmp-1-0', 'HoldRequests', "0", TRUE) );
 				return NULL;
 			break;
 

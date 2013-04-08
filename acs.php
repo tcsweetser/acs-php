@@ -235,6 +235,7 @@ class ACS {
 		$this->Calls = 0;
 		$this->LastEvent = '99 NONE';
 		$this->xVpPrefix = 'InternetGatewayDevice.Services.VoiceService.1.VoiceProfile.';
+		$this->ID = NULL;
 	}
 
 	public function __sleep() {
@@ -427,14 +428,12 @@ class ACS {
 		$Method = 'SendJobs';
 		$JOB = array_shift($this->Queued); // from the front of the queue
 		$XML = file_get_contents('request.xml');
+		$XML = str_replace('%%ID%%',$this->ID,$XML);
 		$XML = str_replace('%%Method%%',$JOB['Method'],$XML);
 		$XML = str_replace('%%Arguments%%',$this->XML($JOB['Arguments']),$XML);
 		$this->DEBUG($Method,sprintf("SENDING %s",$JOB['Method']));
 		header('Content-Type: text/xml; charset=utf-8');
-
-		// DEBUG:
-		$this->DUMPER('SENDJOBS',$XML);
-
+		// DEBUG: $this->DUMPER('SENDJOBS',$XML);
 		die($XML);
 	}
 
@@ -589,9 +588,8 @@ class ACS {
 
 			case "ID":
 				$this->ID = $Arguments[0];
+				$this->DEBUG($Method,sprintf("ID = %s\n",$this->ID));
 				// the reply:
-        $GLOBALS['server']->addSoapHeader( new SoapHeader('urn:dslforum-org:cwmp-1-0', 'ID', $this->ID, TRUE) );
-        $GLOBALS['server']->addSoapHeader( new SoapHeader('urn:dslforum-org:cwmp-1-0', 'HoldRequests', "0", TRUE) );
 				return NULL;
 			break;
 
